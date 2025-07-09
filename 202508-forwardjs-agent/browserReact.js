@@ -1,5 +1,6 @@
 import { chromium } from 'playwright';
 import readline from 'readline';
+import { Agent } from './react.js';
 
 let browser;
 let page;
@@ -389,8 +390,6 @@ closeBrowser.schema = {
     }
 }
 
-// Example usage (commented out)
-
 async function example() {
     await initBrowser();
     console.log(await navigateTo("https://www.example.com"));
@@ -400,5 +399,8 @@ async function example() {
     console.log(await userInput("What is the current page?"));
     await closeBrowser();
 }
-
-example();
+await initBrowser();
+const systemPrompt = `You are a helpful agent that can think and use tools. Use the tools to solve the problem step by step.
+When you use tools, always provide a message to explain your plan along with the tool call. When you trying to find information, only use the snapshot tool after you tried find_in_page tool.`
+const agent = new Agent(systemPrompt, [navigateTo, snapshot, findInPage, clickElement, userInput, closeBrowser, typeText], "cs");
+agent.run("Use wiki to find out the current PM of Canada");

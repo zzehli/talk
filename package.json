@@ -5,9 +5,11 @@
 		"tool": "node --env-file=.env 202508-forwardjs-agent/tools.js",
 		"agent": "node --env-file=.env 202508-forwardjs-agent/agent.js",
 		"react": "node --env-file=.env 202508-forwardjs-agent/react.js",
-		"browser-react": "node --env-file=.env 202508-forwardjs-agent/browserReact.js"
+		"browser-react": "node --env-file=.env 202508-forwardjs-agent/browserReact.js",
+		"prime-react": "node --env-file=.env 202508-forwardjs-agent/primeFactorReact.js"
 	},
 	"dependencies": {
+		"@cerebras/cerebras_cloud_sdk": "^1.35.0",
 		"@huggingface/inference": "^4.0.6",
 		"@huggingface/transformers": "^3.6.1",
 		"chalk": "^5.4.1",

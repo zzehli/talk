@@ -1,9 +1,10 @@
 // basic agent with short term memory
 import { InferenceClient } from "@huggingface/inference";
 import chalk from "chalk";
-import { smallestPrimeFactor, divide, saveFactors, getFactors } from "./primeFactors.js";
 import OpenAI from "openai";
-class Agent {
+import Cerebras from '@cerebras/cerebras_cloud_sdk';
+
+export class Agent {
     constructor(system_prompt, tools = [], provider = "hf") {
         if (provider === "hf") {
             this.client = new InferenceClient(process.env.HF_TOKEN);
@@ -14,6 +15,11 @@ class Agent {
                 apiKey: process.env.GITHUB_OPENAI_API_KEY
             });
             this.model_id = "openai/gpt-4.1";
+        } else if (provider === "cs") {
+            this.client = new Cerebras({
+                apiKey: process.env.CEREBRAS_API_KEY
+            });
+            this.model_id = "qwen-3-32b";
         }
         this.provider = provider;
         this.memory = [];
@@ -30,7 +36,7 @@ class Agent {
                 messages: this.memory,
                 tools: this.tools.map(tool => tool.schema),
             });
-        } else if (this.provider === "gh") {
+        } else if (this.provider === "gh" || this.provider === "cs") {
             response = await this.client.chat.completions.create({
                 model: this.model_id,
                 messages: this.memory,
@@ -41,7 +47,7 @@ class Agent {
     }
 
 
-    executeTool(toolCalls) {
+    async executeTool(toolCalls) {
         // Placeholder for tool execution logic
         let toolResults = []
         for (const toolCall of toolCalls) {
@@ -57,7 +63,7 @@ class Agent {
                 throw new Error(`Tool ${toolName} not found`);
             }
             const args = JSON.parse(toolCall.function.arguments)
-            const res = toolDict[toolName](...Object.values(args))
+            const res = await toolDict[toolName](...Object.values(args))
             console.log(chalk.green(`Tool ${toolName} returned: ${res}`));
             toolResults.push(
                 {
@@ -96,7 +102,7 @@ class Agent {
                 })
             }
             if (result.choices[0].message.tool_calls) {
-                const toolResults = this.executeTool(result.choices[0].message.tool_calls)
+                const toolResults = await this.executeTool(result.choices[0].message.tool_calls)
                 const toolResultsStr = toolResults.map(result => `Tool ${result.tool_name} returned: ${result.result}`).join("\n")
                 this.memory.push({
                     "role": "user",
@@ -112,38 +118,3 @@ class Agent {
         }
     }
 }
-const systemPrompt = `You are a mathematical assistant specialized in prime factorization. Your goal is to find the complete prime factorization of any given number.
-
-You have access to the following tools:
-1. smallestPrimeFactor(n) - Returns the smallest prime factor of n, or null if n <= 1
-2. divide(n, d) - Returns the quotient of n divided by d (integer division)
-3. saveFactors(num) - Saves a factor to the internal storage
-4. getFactors() - Returns all factors saved so far
-
-To find the prime factorization of a number:
-1. Start with the given number
-2. Use smallestPrimeFactor() to find the smallest prime factor
-3. Use divide() to get the quotient after dividing by that factor
-4. Use saveFactors() to store the prime factor you found
-5. Repeat steps 2-4 with the quotient until you reach 1
-6. Use getFactors() to retrieve all the prime factors found
-
-Example workflow for finding prime factors of 84:
-- smallestPrimeFactor(84) = 2
-- saveFactors(2)
-- divide(84, 2) = 42
-- smallestPrimeFactor(42) = 2
-- saveFactors(2)
-- divide(42, 2) = 21
-- smallestPrimeFactor(21) = 3
-- saveFactors(3)
-- divide(21, 3) = 7
-- smallestPrimeFactor(7) = 7
-- saveFactors(7)
-- divide(7, 7) = 1
-- getFactors() = [2, 2, 3, 7]
-
-Always explain your process step by step and provide the final prime factorization in a clear format.`;
-
-const agent = new Agent(systemPrompt, [smallestPrimeFactor, divide, saveFactors, getFactors], "gh");
-agent.run("What are the prime factors of 111345?");
