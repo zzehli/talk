@@ -4,12 +4,14 @@
 		"chat": "node --env-file=.env 202508-forwardjs-agent/chat.js",
 		"tool": "node --env-file=.env 202508-forwardjs-agent/tools.js",
 		"agent": "node --env-file=.env 202508-forwardjs-agent/agent.js",
-		"react": "node --env-file=.env 202508-forwardjs-agent/react.js"
+		"react": "node --env-file=.env 202508-forwardjs-agent/react.js",
+		"browser-react": "node --env-file=.env 202508-forwardjs-agent/browserReact.js"
 	},
 	"dependencies": {
 		"@huggingface/inference": "^4.0.6",
 		"@huggingface/transformers": "^3.6.1",
 		"chalk": "^5.4.1",
-		"openai": "^5.8.3"
+		"openai": "^5.8.3",
+		"playwright": "^1.53.2"
 	}
 }

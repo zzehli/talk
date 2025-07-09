@@ -1,14 +1,13 @@
 // basic agent with short term memory
 import { InferenceClient } from "@huggingface/inference";
 import chalk from "chalk";
-import { simpleFunctionToSchema } from "./utils.js";
-import { smallestPrimeFactor, divide, saveFactors, getFactors } from "./prime_factors.js";
+import { smallestPrimeFactor, divide, saveFactors, getFactors } from "./primeFactors.js";
 import OpenAI from "openai";
 class Agent {
     constructor(system_prompt, tools = [], provider = "hf") {
         if (provider === "hf") {
             this.client = new InferenceClient(process.env.HF_TOKEN);
-            this.model_id = "Qwen/Qwen3-32B";
+            this.model_id = "Qwen/Qwen3-8B";
         } else if (provider === "gh") {
             this.client = new OpenAI({
                 baseURL: "https://models.github.ai/inference",
@@ -29,13 +28,13 @@ class Agent {
             response = await this.client.chatCompletion({
                 model: this.model_id,
                 messages: this.memory,
-                tools: this.tools.map(simpleFunctionToSchema),
+                tools: this.tools.map(tool => tool.schema),
             });
         } else if (this.provider === "gh") {
             response = await this.client.chat.completions.create({
                 model: this.model_id,
                 messages: this.memory,
-                tools: this.tools.map(simpleFunctionToSchema),
+                tools: this.tools.map(tool => tool.schema),
             });
         }
         return response;
@@ -147,5 +146,4 @@ Example workflow for finding prime factors of 84:
 Always explain your process step by step and provide the final prime factorization in a clear format.`;
 
 const agent = new Agent(systemPrompt, [smallestPrimeFactor, divide, saveFactors, getFactors], "gh");
-agent.run("What are the prime factors of 1345?");
-
+agent.run("What are the prime factors of 111345?");
