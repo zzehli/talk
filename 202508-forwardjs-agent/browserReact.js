@@ -1,7 +1,7 @@
 import { chromium } from 'playwright';
 import readline from 'readline';
 import { Agent } from './react.js';
-
+import chalk from 'chalk';
 let browser;
 let page;
 let elements = [];
@@ -32,7 +32,9 @@ async function getCurrentPage() {
 
     const contexts = browser.contexts();
     if (contexts.length === 0) {
-        const context = await browser.newContext();
+        const context = await browser.newContext({
+            userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Gecko/20100101 Firefox/140.0',
+        });
         return await context.newPage();
     }
 
@@ -105,6 +107,67 @@ ariaSnapshot.schema = {
         }
     }
 }
+
+async function extractPageContent() {
+    try {
+        if (!page) {
+            return "No page available";
+        }
+
+        // Select only interactive elements directly
+        elements = await page.locator("summary, h1, h2, h3, h4, h5, h6, p, span")
+            .locator("visible=true")
+            .all();
+
+        if (elements.length > 0) {
+            const textArray = [];
+            const elementsToProcess = elements;
+
+            for (let idx = 0; idx < elementsToProcess.length; idx++) {
+                const elem = elementsToProcess[idx];
+                const tagName = await elem.evaluate(el => el.tagName.toLowerCase());
+
+                let text = `${tagName}: `;
+                const innerText = await elem.innerText();
+                text += innerText.trim();
+
+                if (text.trim() !== `${tagName}:`) {
+                    textArray.push(text);
+                } else {
+                    // If no text, get some basic attributes
+                    const attrs = await elem.evaluate(el => ({
+                        id: el.id,
+                        type: el.type,
+                        name: el.name,
+                        title: el.title,
+                        placeholder: el.placeholder,
+                        value: el.value,
+                        text: el.textContent.trim()
+                    }));
+                    textArray.push(`Element: ${JSON.stringify(attrs)}`);
+                }
+            }
+            return `Interactive elements found: ${JSON.stringify(textArray, null, 2)}`;
+        } else {
+            return "No interactive elements found";
+        }
+    } catch (error) {
+        return `Error taking snapshot: ${error.message}`;
+    }
+}
+
+extractPageContent.schema = {
+    type: "function",
+    function: {
+        name: "extractPageContent",
+        description: "Extract the main text content of the current page",
+        parameters: {
+            type: "object",
+            properties: {}
+        }
+    }
+}
+
 async function findLinksWithText(text) {
     try {
         if (!page) {
@@ -146,12 +209,8 @@ findLinksWithText.schema = {
     }
 }
 
-async function clickAriaElem({ ref, description }) {
+async function click(ref, description) {
     try {
-        if (!browser) {
-            return "Browser not initialized. Call initBrowser() first.";
-        }
-
         if (!page) {
             page = await getCurrentPage();
         }
@@ -206,17 +265,18 @@ async function clickAriaElem({ ref, description }) {
     }
 }
 
-clickAriaElem.schema = {
+click.schema = {
     type: "function",
     function: {
-        name: "clickAriaElem",
-        description: "Click an element using its aria snapshot reference (e.g., 'e10', 'e15')",
+        name: "click",
+        description: "Click an element using its aria snapshot reference, example: click('e6', 'login button')",
         parameters: {
             type: "object",
             properties: {
-                ref: { type: "string", description: "The aria reference of the element to click (e.g., 'e10')" }
+                ref: { type: "string", description: "The aria reference of the element to click (e.g., 'e10')" },
+                description: { type: "string", description: "Optional human-readable description of the element for better error messages (e.g., 'searchbox')" }
             },
-            required: ["ref"]
+            required: ["ref", "description"]
         }
     }
 }
@@ -341,6 +401,7 @@ function userInput(feedback) {
         console.log(`Feedback: ${feedback}`);
         rl.question('Please enter your input: ', (answer) => {
             rl.close();
+            console.log(chalk.cyan(`User input: ${answer}`));
             resolve(`User input: ${answer}`);
         });
     });
@@ -389,17 +450,27 @@ closeBrowser.schema = {
 
 async function example() {
     await initBrowser();
-    console.log(await navigateTo("https://google.com"));
+    console.log(await navigateTo("https://example.com"));
     console.log(await ariaSnapshot());
-    // console.log(await clickAriaElem({ ref: "e7762", description: "listitem" }));
-    console.log(await typeText({ text: "Hello", ref: "e44", description: "searchbox", submit: true }));
-    // console.log(await findInPage("Domain"));
+    console.log(await click({ ref: "e6", description: "button" }));
+    // console.log(await ariaSnapshot());
+    // console.log(await typeText({ text: "Hello", ref: "e44", description: "searchbox", submit: true }));
+    // console.log(await extractPageContent());
     // console.log(await userInput("What is the current page?"));
     // await closeBrowser();
 }
-example();
-// await initBrowser();
-// const systemPrompt = `You are a helpful agent that can think and use tools. Use the tools to solve the problem step by step.
-// When you use tools, always provide a message to explain your plan along with the tool call. When you trying to find information, use findInPage tool. For interaction, use ariaSnapshot to get the element reference and then clickAriaElem or typeText tool.`
-// const agent = new Agent(systemPrompt, [navigateTo, snapshot, findInPage, clickElement, userInput, closeBrowser, typeText], "cs");
-// agent.run("Use wiki to find out the current PM of Canada");
+// example();
+
+const hn = "go to hackernews read the no.1 trending article and give me a summary of it"
+const wiki = "go to wikipedia and search for the current prime minister of canada"
+const gh = "find some open issues on the top trending repo on github this month"
+const eg = "go to https://example.com and click a link"
+
+
+await initBrowser();
+const systemPrompt = `You are a helpful agent that can think and use tools. Use the tools to solve the problem step by step.
+When you use tools, always provide a message to explain your plan along with the tool call. When you trying to find information or need a general overview of the page, use findInPage tool or extractPageContent tool. For interaction, use ariaSnapshot to get the element reference and then use click or typeText tool. When in doubt, solicit user input with userInput tool.`
+const agent = new Agent(systemPrompt, [navigateTo, ariaSnapshot, findInPage, userInput, typeText, extractPageContent, click], "cs");
+await agent.run(eg);
+await closeBrowser();
+
