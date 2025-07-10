@@ -5,7 +5,6 @@ import { Agent } from './react.js';
 let browser;
 let page;
 let elements = [];
-
 // Initialize browser and page
 async function initBrowser() {
     if (!browser) {
@@ -86,83 +85,26 @@ navigateTo.schema = {
     }
 }
 
-async function snapshot() {
-    try {
-        if (!page) {
-            return "No page available";
-        }
-
-        // Select only interactive elements directly
-        elements = await page.locator("input, a, button, select, textarea, summary, h1, h2, h3, h4, h5, h6, p, span")
-            .locator("visible=true")
-            .all();
-
-        if (elements.length > 0) {
-            const res = {};
-            const elementsToProcess = elements.slice(0, 100); // Limit to first 100 elements
-
-            for (let idx = 0; idx < elementsToProcess.length; idx++) {
-                const elem = elementsToProcess[idx];
-                const tagName = await elem.evaluate(el => el.tagName.toLowerCase());
-
-                if (tagName === "input") {
-                    const inputInfo = await elem.evaluate(el => ({
-                        type: el.type,
-                        value: el.value,
-                        placeholder: el.placeholder,
-                        role: el.role,
-                        name: el.name
-                    }));
-                    res[idx] = `Input: ${JSON.stringify(inputInfo)}`;
-                } else if (tagName === "a") {
-                    const linkInfo = await elem.evaluate(el => ({
-                        href: el.href,
-                        text: el.textContent.trim()
-                    }));
-                    res[idx] = `Link: ${JSON.stringify(linkInfo)}`;
-                } else {
-                    let text = `${tagName}: `;
-                    const innerText = await elem.innerText();
-                    text += innerText.trim();
-
-                    if (text.trim() !== `${tagName}:`) {
-                        res[idx] = text;
-                    } else {
-                        // If no text, get some basic attributes
-                        const attrs = await elem.evaluate(el => ({
-                            id: el.id,
-                            type: el.type,
-                            name: el.name,
-                            title: el.title,
-                            placeholder: el.placeholder,
-                            value: el.value,
-                            text: el.textContent.trim()
-                        }));
-                        res[idx] = `Element: ${JSON.stringify(attrs)}`;
-                    }
-                }
-            }
-            return `Interactive elements found: ${JSON.stringify(res, null, 2)}`;
-        } else {
-            return "No interactive elements found";
-        }
-    } catch (error) {
-        return `Error taking snapshot: ${error.message}`;
+async function ariaSnapshot() {
+    if (!page) {
+        return "No page available";
     }
+
+    const ariaElements = await page.locator("body").ariaSnapshot({ forAI: true });
+    return `Aria elements: ${JSON.stringify(ariaElements, null, 2)}`;
 }
 
-snapshot.schema = {
+ariaSnapshot.schema = {
     type: "function",
     function: {
-        name: "snapshot",
-        description: "Generate a snapshot of the current page, including all interactive elements, text, and links. This is slow, so use it sparingly.",
+        name: "ariaSnapshot",
+        description: "Generate an accessibility tree snapshot of the current page with element references for interaction",
         parameters: {
             type: "object",
             properties: {}
         }
     }
 }
-
 async function findLinksWithText(text) {
     try {
         if (!page) {
@@ -204,74 +146,127 @@ findLinksWithText.schema = {
     }
 }
 
-async function clickElement(index = 0) {
+async function clickAriaElem({ ref, description }) {
     try {
+        if (!browser) {
+            return "Browser not initialized. Call initBrowser() first.";
+        }
+
+        if (!page) {
+            page = await getCurrentPage();
+        }
+
         if (!page) {
             return "No page available";
         }
 
-        const oldUrl = page.url();
+        try {
+            // Use the correct aria-ref locator syntax
+            const ariaElement = page.locator(`aria-ref=${ref}`).describe(description);
 
-        if (elements.length > 0 && elements[index]) {
-            try {
-                // Set up navigation promise with timeout
-                const navigationPromise = page.waitForNavigation({ timeout: 3000 });
-
-                await elements[index].click();
-
-                try {
-                    await navigationPromise;
-                    if (page.url() !== oldUrl) {
-                        await page.waitForLoadState();
-                        return "Element clicked, navigating to new page";
-                    }
-                    return "Element clicked, no navigation occurred";
-                } catch (timeoutError) {
-                    if (page.url() === oldUrl) {
-                        return "Element clicked, no navigation occurred";
-                    }
-                    return "Element clicked, navigation may have occurred";
-                }
-            } catch (error) {
-                return `Error clicking element: ${error.message}`;
+            // Check if element exists
+            const count = await ariaElement.count();
+            if (count === 0) {
+                return `Element with ref '${ref}' not found`;
             }
-        } else {
-            return "No elements available to click or invalid index";
+
+            // Store the current URL to detect navigation
+            const oldUrl = page.url();
+
+            // Set up navigation promise with timeout (similar to clickElement)
+            const navigationPromise = page.waitForNavigation({ timeout: 3000 });
+
+            // Click the element
+            await ariaElement.click();
+
+            // Handle potential navigation
+            try {
+                await navigationPromise;
+                if (page.url() !== oldUrl) {
+                    await page.waitForLoadState();
+                    return `Clicked element '${ref} ${description}', navigated to new page: ${page.url()}`;
+                }
+                return `Clicked element '${ref} ${description}', no navigation occurred`;
+            } catch (timeoutError) {
+                if (page.url() === oldUrl) {
+                    return `Clicked element '${ref} ${description}', no navigation occurred`;
+                }
+                return `Clicked element '${ref} ${description}', navigation may have occurred`;
+            }
+
+        } catch (elementError) {
+            if (elementError.message && elementError.message.includes('Timeout')) {
+                return `Element with ref '${ref} ${description}' not found, likely because element was removed. Use ariaSnapshot() to see current elements.`;
+            }
+            return `Error clicking element '${ref} ${description}': ${elementError.message}`;
         }
+
     } catch (error) {
-        return `Error in clickElement: ${error.message}`;
+        return `Error in clickAriaElem: ${error.message}`;
     }
 }
 
-clickElement.schema = {
+clickAriaElem.schema = {
     type: "function",
     function: {
-        name: "clickElement",
-        description: "Click an element using its index",
+        name: "clickAriaElem",
+        description: "Click an element using its aria snapshot reference (e.g., 'e10', 'e15')",
         parameters: {
             type: "object",
             properties: {
-                index: { type: "number", description: "The index of the element to click (default: 0)" }
-            }
+                ref: { type: "string", description: "The aria reference of the element to click (e.g., 'e10')" }
+            },
+            required: ["ref"]
         }
     }
 }
 
-async function typeText(text, index = 0) {
+async function typeText({ text, ref, description = null, submit = false }) {
     try {
-        if (!page) {
-            return "No page available";
+
+        try {
+            let ariaElement = page.locator(`aria-ref=${ref}`);
+
+            if (description) {
+                ariaElement = ariaElement.describe(description);
+            }
+
+            const count = await ariaElement.count();
+            if (count === 0) {
+                const elementInfo = description ? `${description} (ref: ${ref})` : `ref '${ref}'`;
+                return `Element ${elementInfo} not found`;
+            }
+
+
+            await ariaElement.fill(text);
+
+
+
+            let result = '';
+            const elementInfo = description ? `${description} (${ref})` : `'${ref}'`;
+
+            result = `Typed '${text}' into element ${elementInfo}`;
+
+
+            if (submit) {
+                await ariaElement.press('Enter');
+                await page.waitForTimeout(5000); // Wait a bit longer after submitting
+                result += ` and pressed Enter`;
+            }
+
+            return result;
+
+        } catch (elementError) {
+            if (elementError.message && elementError.message.includes('Timeout')) {
+                const elementInfo = description ? `${description} (ref: ${ref})` : `ref '${ref}'`;
+                return `Element ${elementInfo} not found, likely because element was removed. Use ariaSnapshot() to see current elements.`;
+            }
+            const elementInfo = description ? `${description} (ref: ${ref})` : `ref '${ref}'`;
+            return `Error typing into element ${elementInfo}: ${elementError.message}`;
         }
 
-        if (elements.length > 0 && elements[index]) {
-            await elements[index].fill(text);
-            await page.waitForTimeout(1500);
-            return `Type '${text}' into element ${index}.`;
-        } else {
-            return "No element was typed into";
-        }
     } catch (error) {
-        return `Error typing text: ${error.message}`;
+        return `Error in typeText: ${error.message}`;
     }
 }
 
@@ -279,14 +274,17 @@ typeText.schema = {
     type: "function",
     function: {
         name: "typeText",
-        description: "Type text into an element",
+        description: "Type text into an element using its aria snapshot reference, with options to type slowly or submit",
         parameters: {
             type: "object",
             properties: {
                 text: { type: "string", description: "The text to type" },
-                index: { type: "number", description: "The index of the element to type into (default: 0)" }
+                ref: { type: "string", description: "The aria reference of the element to type into (e.g., 'e10')" },
+                description: { type: "string", description: "Optional human-readable description of the element for better error messages" },
+                submit: { type: "boolean", description: "Whether to press Enter after typing (default: false)" },
+                slowly: { type: "boolean", description: "Whether to type text sequentially/slowly (default: false)" }
             },
-            required: ["text"]
+            required: ["text", "ref"]
         }
     }
 }
@@ -369,7 +367,6 @@ async function closeBrowser() {
             await browser.close();
             browser = null;
             page = null;
-            elements = [];
             return "Browser closed";
         }
         return "Browser was not open";
@@ -392,15 +389,17 @@ closeBrowser.schema = {
 
 async function example() {
     await initBrowser();
-    console.log(await navigateTo("https://www.example.com"));
-    console.log(await snapshot());
-    console.log(await findInPage("Domain"));
-    console.log(await clickElement(3));
-    console.log(await userInput("What is the current page?"));
-    await closeBrowser();
+    console.log(await navigateTo("https://google.com"));
+    console.log(await ariaSnapshot());
+    // console.log(await clickAriaElem({ ref: "e7762", description: "listitem" }));
+    console.log(await typeText({ text: "Hello", ref: "e44", description: "searchbox", submit: true }));
+    // console.log(await findInPage("Domain"));
+    // console.log(await userInput("What is the current page?"));
+    // await closeBrowser();
 }
-await initBrowser();
-const systemPrompt = `You are a helpful agent that can think and use tools. Use the tools to solve the problem step by step.
-When you use tools, always provide a message to explain your plan along with the tool call. When you trying to find information, only use the snapshot tool after you tried find_in_page tool.`
-const agent = new Agent(systemPrompt, [navigateTo, snapshot, findInPage, clickElement, userInput, closeBrowser, typeText], "cs");
-agent.run("Use wiki to find out the current PM of Canada");
+example();
+// await initBrowser();
+// const systemPrompt = `You are a helpful agent that can think and use tools. Use the tools to solve the problem step by step.
+// When you use tools, always provide a message to explain your plan along with the tool call. When you trying to find information, use findInPage tool. For interaction, use ariaSnapshot to get the element reference and then clickAriaElem or typeText tool.`
+// const agent = new Agent(systemPrompt, [navigateTo, snapshot, findInPage, clickElement, userInput, closeBrowser, typeText], "cs");
+// agent.run("Use wiki to find out the current PM of Canada");
