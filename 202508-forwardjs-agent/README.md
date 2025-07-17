@@ -5,3 +5,4 @@
     * primeFactorReact shows how it solves prime factorization 
     * browserReact shows a browser-use agent with ReAct pattern
 4. codeact.js is an implementation of Wang et al.'s CodeAct pattern
+    * primeFactorCodeact shows how it solves prime factorization 
