@@ -48,8 +48,6 @@ export class Agent {
 
 
     async executeTool(toolCalls) {
-        // Placeholder for tool execution logic
-        console.log("this is react")
         let toolResults = []
         for (const toolCall of toolCalls) {
             console.log(chalk.yellow(`Executing tool: ${toolCall.function.name} with args: ${JSON.stringify(toolCall.function.arguments)}`));

@@ -49,7 +49,6 @@ export class CodeAct extends Agent {
         super(systemPrompt, tools, provider);
         this.responseFormat = responseFormat;
         this.systemPrompt += `You have access to the following user-defined functions: ${tools.map(t => JSON.stringify(t.schema)).join(", ")}.`;
-        console.log(this.systemPrompt)
         const isolate = new ivm.Isolate();
         this.context = isolate.createContextSync();
         const jail = this.context.global;
@@ -63,7 +62,6 @@ export class CodeAct extends Agent {
         jail.setSync("finalAnswer", (result) => {
             console.log(chalk.green("Final answer: " + result));
         });
-        // console.log(this.context.evalSync("res = getWeather('Tokyo')\nfinalAnswer(res)"))
     }
 
     async call() {
@@ -105,10 +103,9 @@ export class CodeAct extends Agent {
         while (true) {
             console.log(chalk.cyan.bold(`\n📋 STEP ${step}`));
             console.log(chalk.cyan("─".repeat(30)));
-            console.log("this is codeact")
             let result = await this.call();
             const response = JSON.parse(result.choices[0].message.content)
-            console.log(chalk.blue(`Agent returned: ${JSON.stringify(response)}`));
+            console.log(JSON.stringify(response, null, 2));
             if (response.thought) {
                 this.memory.push({
                     "role": "assistant",
@@ -116,7 +113,6 @@ export class CodeAct extends Agent {
                 })
             }
             if (response.code) {
-                console.log("this is code")
                 const codeResult = await this.executeTool(response.code)
                 if (response.code.includes("finalAnswer")) {
                     console.log(chalk.green.bold("\n✅ COMPLETED"));
