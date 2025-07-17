@@ -1,5 +1,6 @@
 import { Agent } from './react.js';
-import { smallestPrimeFactor, divide, saveFactors, getFactors } from "./primeFactors.js";
+import { smallestPrimeFactor, divide, saveFactors, getFactors } from './primeFactorTools.js';
+
 const systemPrompt = `You are a mathematical assistant specialized in prime factorization. Your goal is to find the complete prime factorization of any given number.
 
 You have access to the following tools:

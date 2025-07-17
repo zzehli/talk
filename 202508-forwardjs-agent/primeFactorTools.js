@@ -83,7 +83,6 @@ getFactors.schema = {
         }
     }
 }
-
 export {
     smallestPrimeFactor,
     divide,

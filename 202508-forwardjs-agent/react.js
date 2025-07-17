@@ -5,26 +5,26 @@ import OpenAI from "openai";
 import Cerebras from '@cerebras/cerebras_cloud_sdk';
 
 export class Agent {
-    constructor(system_prompt, tools = [], provider = "hf") {
+    constructor(systemPrompt, tools = [], provider = "hf") {
         if (provider === "hf") {
             this.client = new InferenceClient(process.env.HF_TOKEN);
-            this.model_id = "Qwen/Qwen3-8B";
+            this.modelId = "Qwen/Qwen3-8B";
         } else if (provider === "gh") {
             this.client = new OpenAI({
                 baseURL: "https://models.github.ai/inference",
                 apiKey: process.env.GITHUB_OPENAI_API_KEY
             });
-            this.model_id = "openai/gpt-4.1";
+            this.modelId = "openai/gpt-4.1";
         } else if (provider === "cs") {
             this.client = new Cerebras({
                 apiKey: process.env.CEREBRAS_API_KEY
             });
-            this.model_id = "qwen-3-32b";
+            this.modelId = "qwen-3-32b";
         }
         this.provider = provider;
         this.memory = [];
         this.tools = tools;
-        this.system_prompt = system_prompt;
+        this.systemPrompt = systemPrompt;
     }
 
     async call() {
@@ -32,13 +32,13 @@ export class Agent {
         let response;
         if (this.provider === "hf") {
             response = await this.client.chatCompletion({
-                model: this.model_id,
+                model: this.modelId,
                 messages: this.memory,
                 tools: this.tools.map(tool => tool.schema),
             });
         } else if (this.provider === "gh" || this.provider === "cs") {
             response = await this.client.chat.completions.create({
-                model: this.model_id,
+                model: this.modelId,
                 messages: this.memory,
                 tools: this.tools.map(tool => tool.schema),
             });
@@ -49,6 +49,7 @@ export class Agent {
 
     async executeTool(toolCalls) {
         // Placeholder for tool execution logic
+        console.log("this is react")
         let toolResults = []
         for (const toolCall of toolCalls) {
             console.log(chalk.yellow(`Executing tool: ${toolCall.function.name} with args: ${JSON.stringify(toolCall.function.arguments)}`));
@@ -67,7 +68,7 @@ export class Agent {
             console.log(chalk.green(`Tool ${toolName} returned: ${res}`));
             toolResults.push(
                 {
-                    "tool_name": toolName,
+                    "toolName": toolName,
                     "args": toolCall.function.arguments,
                     "result": res,
                 }
@@ -81,7 +82,7 @@ export class Agent {
 
         this.memory.push({
             "role": "system",
-            "content": this.system_prompt,
+            "content": this.systemPrompt,
         })
         this.memory.push({
             "role": "user",
@@ -103,7 +104,7 @@ export class Agent {
             }
             if (result.choices[0].message.tool_calls) {
                 const toolResults = await this.executeTool(result.choices[0].message.tool_calls)
-                const toolResultsStr = toolResults.map(result => `Tool ${result.tool_name} returned: ${result.result}`).join("\n")
+                const toolResultsStr = toolResults.map(result => `Tool ${result.toolName} returned: ${result.result}`).join("\n")
                 this.memory.push({
                     "role": "user",
                     "content": toolResultsStr,
