@@ -46,5 +46,7 @@ const response_one = await client.chatCompletion({
 })
 console.log(chalk.yellow("--------------response------------------"))
 console.log(chalk.bgYellow("response:"));
+console.log(chalk.underline("content:"));
 console.log(response_one.choices[0].message.content);
-
+console.log(chalk.underline("tool_calls:"));
+console.log(response_one.choices[0].message.tool_calls);

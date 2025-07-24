@@ -281,7 +281,7 @@ click.schema = {
     }
 }
 
-async function typeText({ text, ref, description = null, submit = false }) {
+async function typeText({ text, ref, description = null, submit = true }) {
     try {
 
         try {
@@ -297,8 +297,22 @@ async function typeText({ text, ref, description = null, submit = false }) {
                 return `Element ${elementInfo} not found`;
             }
 
+            // Check if the element is a form and find the input within it
+            const tagName = await ariaElement.evaluate(el => el.tagName.toLowerCase());
+            let targetElement = ariaElement;
 
-            await ariaElement.fill(text);
+            if (tagName === 'form') {
+                // Look for input, textarea, or other fillable elements within the form
+                const inputElement = ariaElement.locator('input, textarea, [contenteditable]').first();
+                const inputCount = await inputElement.count();
+                if (inputCount > 0) {
+                    targetElement = inputElement;
+                } else {
+                    return `Form element found but no fillable input inside. Try targeting the input field directly.`;
+                }
+            }
+
+            await targetElement.fill(text);
 
 
 
@@ -309,7 +323,7 @@ async function typeText({ text, ref, description = null, submit = false }) {
 
 
             if (submit) {
-                await ariaElement.press('Enter');
+                await targetElement.press('Enter');
                 await page.waitForTimeout(5000); // Wait a bit longer after submitting
                 result += ` and pressed Enter`;
             }
@@ -341,7 +355,7 @@ typeText.schema = {
                 text: { type: "string", description: "The text to type" },
                 ref: { type: "string", description: "The aria reference of the element to type into (e.g., 'e10')" },
                 description: { type: "string", description: "Optional human-readable description of the element for better error messages" },
-                submit: { type: "boolean", description: "Whether to press Enter after typing (default: false)" },
+                submit: { type: "boolean", description: "Whether to press Enter after typing (default: true)" },
                 slowly: { type: "boolean", description: "Whether to type text sequentially/slowly (default: false)" }
             },
             required: ["text", "ref"]
@@ -450,27 +464,26 @@ closeBrowser.schema = {
 
 async function example() {
     await initBrowser();
-    console.log(await navigateTo("https://example.com"));
+    console.log(await navigateTo("https://www.instacart.com"));
     console.log(await ariaSnapshot());
-    console.log(await click({ ref: "e6", description: "button" }));
+    // console.log(await click({ ref: "e6", description: "button" }));
     // console.log(await ariaSnapshot());
-    // console.log(await typeText({ text: "Hello", ref: "e44", description: "searchbox", submit: true }));
+    console.log(await typeText({ text: "Hello", ref: "e16", description: "searchbox", submit: true }));
     // console.log(await extractPageContent());
     // console.log(await userInput("What is the current page?"));
     // await closeBrowser();
 }
 // example();
 
-const hn = "go to hackernews read the no.1 trending article and give me a summary of it"
+const hn = "go to hackernews (https://news.ycombinator.com/) read the no.1 trending article and give me a summary of it"
 const wiki = "go to wikipedia and search for the current prime minister of canada"
 const gh = "find some open issues on the top trending repo on github this month"
 const eg = "go to https://example.com and click a link"
-
+const ic = "look for vegan salad on instacart and add it to the cart"
 
 await initBrowser();
 const systemPrompt = `You are a helpful agent that can think and use tools. Use the tools to solve the problem step by step.
 When you use tools, always provide a message to explain your plan along with the tool call. When you trying to find information or need a general overview of the page, use findInPage tool or extractPageContent tool. For interaction, use ariaSnapshot to get the element reference and then use click or typeText tool. When in doubt, solicit user input with userInput tool.`
 const agent = new Agent(systemPrompt, [navigateTo, ariaSnapshot, findInPage, userInput, typeText, extractPageContent, click], "cs");
-await agent.run(eg);
+await agent.run(hn);
 await closeBrowser();
-

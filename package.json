@@ -1,13 +1,11 @@
 {
 	"type": "module",
 	"scripts": {
-		"chat": "node --env-file=.env 202508-forwardjs-agent/chat.js",
-		"tool": "node --env-file=.env 202508-forwardjs-agent/tools.js",
-		"agent": "node --env-file=.env 202508-forwardjs-agent/agent.js",
-		"browser-react": "node --env-file=.env 202508-forwardjs-agent/browserReact.js",
-		"pf-react": "node --env-file=.env 202508-forwardjs-agent/primeFactorReact.js",
-		"ivm": "node --no-node-snapshot 202508-forwardjs-agent/isolate.js",
-		"pf-codeact": "node --env-file=.env 202508-forwardjs-agent/primeFactorCodeact.js"
+		"chat": "node --env-file=.env 202508-forwardjs-agent/chat-script.js",
+		"tool": "node --env-file=.env 202508-forwardjs-agent/tools-script.js",
+		"browser-react": "node --env-file=.env 202508-forwardjs-agent/browser-react-script.js",
+		"pf-react": "node --env-file=.env 202508-forwardjs-agent/prime-factor-react-script.js",
+		"pf-codeact": "node --env-file=.env 202508-forwardjs-agent/prime-factor-codeact-script.js"
 	},
 	"dependencies": {
 		"@cerebras/cerebras_cloud_sdk": "^1.35.0",
