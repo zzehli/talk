@@ -8,6 +8,7 @@
 		"pf-codeact": "node --env-file=.env 202508-forwardjs-agent/prime-factor-codeact-script.js"
 	},
 	"dependencies": {
+		"@anthropic-ai/sdk": "^0.57.0",
 		"@cerebras/cerebras_cloud_sdk": "^1.35.0",
 		"@huggingface/inference": "^4.0.6",
 		"@huggingface/transformers": "^3.6.1",

@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@anthropic-ai/sdk':
+        specifier: ^0.57.0
+        version: 0.57.0
       '@cerebras/cerebras_cloud_sdk':
         specifier: ^1.35.0
         version: 1.35.0
@@ -31,6 +34,10 @@ importers:
         version: 1.53.2
 
 packages:
+
+  '@anthropic-ai/sdk@0.57.0':
+    resolution: {integrity: sha512-z5LMy0MWu0+w2hflUgj4RlJr1R+0BxKXL7ldXTO8FasU8fu599STghO+QKwId2dAD0d464aHtU+ChWuRHw4FNw==}
+    hasBin: true
 
   '@cerebras/cerebras_cloud_sdk@1.35.0':
     resolution: {integrity: sha512-bQ6KYHmcvudHJ1aLzqkeETn3Y071/8/zpcZho6g4pKZ+VluHvLmIG0buhrwF9qJY5WSLmXR/s4pruxVRmfV7yQ==}
@@ -664,6 +671,8 @@ packages:
     resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
 
 snapshots:
+
+  '@anthropic-ai/sdk@0.57.0': {}
 
   '@cerebras/cerebras_cloud_sdk@1.35.0':
     dependencies:

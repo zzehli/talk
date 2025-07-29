@@ -25,6 +25,16 @@ initBrowser.schema = {
     }
 }
 
+// Add Anthropic schema
+initBrowser.anthropicSchema = {
+    name: "initBrowser",
+    description: "Initialize browser and page",
+    input_schema: {
+        type: "object",
+        properties: {}
+    }
+}
+
 async function getCurrentPage() {
     if (!browser) {
         throw new Error('Browser not initialized. Call initBrowser() first.');
@@ -59,6 +69,16 @@ getCurrentPage.schema = {
     }
 }
 
+// Add Anthropic schema
+getCurrentPage.anthropicSchema = {
+    name: "getCurrentPage",
+    description: "Get the current page instance",
+    input_schema: {
+        type: "object",
+        properties: {}
+    }
+}
+
 async function navigateTo(url) {
     try {
         if (!page) {
@@ -87,6 +107,19 @@ navigateTo.schema = {
     }
 }
 
+// Add Anthropic schema
+navigateTo.anthropicSchema = {
+    name: "navigateTo",
+    description: "Navigate to a URL",
+    input_schema: {
+        type: "object",
+        properties: {
+            url: { type: "string", description: "The URL to navigate to" }
+        },
+        required: ["url"]
+    }
+}
+
 async function ariaSnapshot() {
     if (!page) {
         return "No page available";
@@ -105,6 +138,16 @@ ariaSnapshot.schema = {
             type: "object",
             properties: {}
         }
+    }
+}
+
+// Add Anthropic schema
+ariaSnapshot.anthropicSchema = {
+    name: "ariaSnapshot",
+    description: "Generate an accessibility tree snapshot of the current page with element references for interaction",
+    input_schema: {
+        type: "object",
+        properties: {}
     }
 }
 
@@ -168,6 +211,16 @@ extractPageContent.schema = {
     }
 }
 
+// Add Anthropic schema
+extractPageContent.anthropicSchema = {
+    name: "extractPageContent",
+    description: "Extract the main text content of the current page",
+    input_schema: {
+        type: "object",
+        properties: {}
+    }
+}
+
 async function findLinksWithText(text) {
     try {
         if (!page) {
@@ -206,6 +259,19 @@ findLinksWithText.schema = {
             },
             required: ["text"]
         }
+    }
+}
+
+// Add Anthropic schema
+findLinksWithText.anthropicSchema = {
+    name: "findLinksWithText",
+    description: "Find links with specific text",
+    input_schema: {
+        type: "object",
+        properties: {
+            text: { type: "string", description: "The text to search for in links" }
+        },
+        required: ["text"]
     }
 }
 
@@ -278,6 +344,20 @@ click.schema = {
             },
             required: ["ref", "description"]
         }
+    }
+}
+
+// Add Anthropic schema
+click.anthropicSchema = {
+    name: "click",
+    description: "Click an element using its aria snapshot reference, example: click('e6', 'login button')",
+    input_schema: {
+        type: "object",
+        properties: {
+            ref: { type: "string", description: "The aria reference of the element to click (e.g., 'e10')" },
+            description: { type: "string", description: "Optional human-readable description of the element for better error messages (e.g., 'searchbox')" }
+        },
+        required: ["ref", "description"]
     }
 }
 
@@ -363,6 +443,23 @@ typeText.schema = {
     }
 }
 
+// Add Anthropic schema
+typeText.anthropicSchema = {
+    name: "typeText",
+    description: "Type text into an element using its aria snapshot reference, with options to type slowly or submit",
+    input_schema: {
+        type: "object",
+        properties: {
+            text: { type: "string", description: "The text to type" },
+            ref: { type: "string", description: "The aria reference of the element to type into (e.g., 'e10')" },
+            description: { type: "string", description: "Optional human-readable description of the element for better error messages" },
+            submit: { type: "boolean", description: "Whether to press Enter after typing (default: true)" },
+            slowly: { type: "boolean", description: "Whether to type text sequentially/slowly (default: false)" }
+        },
+        required: ["text", "ref"]
+    }
+}
+
 async function findInPage(keyword) {
     try {
         if (!page) {
@@ -405,6 +502,19 @@ findInPage.schema = {
     }
 }
 
+// Add Anthropic schema
+findInPage.anthropicSchema = {
+    name: "findInPage",
+    description: "Look for information by searching a keyword and return sentences that contain the keywords",
+    input_schema: {
+        type: "object",
+        properties: {
+            keyword: { type: "string", description: "The keyword to search for" }
+        },
+        required: ["keyword"]
+    }
+}
+
 function userInput(feedback) {
     const rl = readline.createInterface({
         input: process.stdin,
@@ -436,6 +546,19 @@ userInput.schema = {
     }
 }
 
+// Add Anthropic schema
+userInput.anthropicSchema = {
+    name: "userInput",
+    description: "Solicit user input when the agent needs to know more about the current task",
+    input_schema: {
+        type: "object",
+        properties: {
+            feedback: { type: "string", description: "The feedback message to display" }
+        },
+        required: ["feedback"]
+    }
+}
+
 async function closeBrowser() {
     try {
         if (browser) {
@@ -462,6 +585,16 @@ closeBrowser.schema = {
     }
 }
 
+// Add Anthropic schema
+closeBrowser.anthropicSchema = {
+    name: "closeBrowser",
+    description: "Close the browser",
+    input_schema: {
+        type: "object",
+        properties: {}
+    }
+}
+
 async function example() {
     await initBrowser();
     console.log(await navigateTo("https://www.instacart.com"));
@@ -484,6 +617,6 @@ const ic = "look for vegan salad on instacart and add it to the cart"
 await initBrowser();
 const systemPrompt = `You are a helpful agent that can think and use tools. Use the tools to solve the problem step by step.
 When you use tools, always provide a message to explain your plan along with the tool call. When you trying to find information or need a general overview of the page, use findInPage tool or extractPageContent tool. For interaction, use ariaSnapshot to get the element reference and then use click or typeText tool. When in doubt, solicit user input with userInput tool.`
-const agent = new Agent(systemPrompt, [navigateTo, ariaSnapshot, findInPage, userInput, typeText, extractPageContent, click], "cs");
+const agent = new Agent(systemPrompt, [navigateTo, ariaSnapshot, findInPage, userInput, typeText, extractPageContent, click], "cd");
 await agent.run(hn);
 await closeBrowser();
