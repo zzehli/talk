@@ -4,6 +4,7 @@ import chalk from "chalk";
 import OpenAI from "openai";
 import Cerebras from '@cerebras/cerebras_cloud_sdk';
 import Anthropic from "@anthropic-ai/sdk";
+import { Groq } from 'groq-sdk';
 export class Agent {
     constructor(systemPrompt, tools = [], provider = "hf") {
         if (provider === "hf") {
@@ -23,6 +24,9 @@ export class Agent {
         } else if (provider === "cd") {
             this.client = new Anthropic();
             this.modelId = "claude-sonnet-4-20250514";
+        } else if (provider === "gq") {
+            this.client = new Groq();
+            this.modelId = "qwen/qwen3-32b"
         } else {
             throw new Error(`Provider ${provider} not supported`);
         }
@@ -30,6 +34,7 @@ export class Agent {
         this.memory = [];
         this.tools = tools;
         this.systemPrompt = systemPrompt;
+        this.totalTokens = 0; // Track cumulative tokens
     }
 
     async call() {
@@ -41,7 +46,7 @@ export class Agent {
                 messages: this.memory,
                 tools: this.tools.map(tool => tool.schema),
             });
-        } else if (this.provider === "gh" || this.provider === "cs") {
+        } else if (this.provider === "gh" || this.provider === "cs" || this.provider === "gq") {
             response = await this.client.chat.completions.create({
                 model: this.modelId,
                 messages: this.memory,
@@ -108,6 +113,13 @@ export class Agent {
             let result = await this.call();
             await new Promise(resolve => setTimeout(resolve, 1000));
 
+            // Track tokens from this API call
+            let currentTokens = 0;
+            if (this.provider === "cs" && result.usage?.total_tokens) {
+                currentTokens = result.usage.total_tokens;
+                this.totalTokens += currentTokens;
+            }
+
             // Handle different response formats for different providers
             let messageContent, toolCalls;
 
@@ -150,6 +162,10 @@ export class Agent {
                     "content": toolResultsStr,
                 })
             } else {
+                if (this.provider === "cs") {
+                    console.log(chalk.magenta.bold(`\n🔢 FINAL TOKEN SUMMARY:`));
+                    console.log(chalk.magenta(`Total tokens used: ${this.totalTokens}`));
+                }
                 console.log(chalk.green.bold("\n✅ COMPLETED"));
                 console.log(chalk.green("─".repeat(30)));
                 break;

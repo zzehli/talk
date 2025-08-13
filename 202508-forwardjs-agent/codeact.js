@@ -62,6 +62,7 @@ export class CodeAct extends Agent {
         jail.setSync("finalAnswer", (result) => {
             console.log(chalk.green("Final answer: " + result));
         });
+        this.totalTokens = 0; // Track cumulative tokens
     }
 
     async call() {
@@ -72,7 +73,7 @@ export class CodeAct extends Agent {
                 messages: this.memory,
                 response_format: this.responseFormat,
             });
-        } else if (this.provider === "gh" || this.provider === "cs") {
+        } else if (this.provider === "gh" || this.provider === "cs" || this.provider === "gq") {
             response = await this.client.chat.completions.create({
                 model: this.modelId,
                 messages: this.memory,
@@ -84,7 +85,6 @@ export class CodeAct extends Agent {
 
     async executeTool(code) {
         const response = this.context.evalSync(code);
-        console.log(chalk.magenta("Code result: " + response));
         return response;
     }
 
@@ -104,6 +104,14 @@ export class CodeAct extends Agent {
             console.log(chalk.cyan.bold(`\n📋 STEP ${step}`));
             console.log(chalk.cyan("─".repeat(30)));
             let result = await this.call();
+
+            // Track tokens from this API call
+            let currentTokens = 0;
+            if (this.provider === "cs" && result.usage?.total_tokens) {
+                currentTokens = result.usage.total_tokens;
+                this.totalTokens += currentTokens;
+            }
+
             const response = JSON.parse(result.choices[0].message.content)
             console.log(JSON.stringify(response, null, 2));
             if (response.thought) {
@@ -115,6 +123,10 @@ export class CodeAct extends Agent {
             if (response.code) {
                 const codeResult = await this.executeTool(response.code)
                 if (response.code.includes("finalAnswer")) {
+                    if (this.provider === "cs") {
+                        console.log(chalk.magenta.bold(`\n🔢 FINAL TOKEN SUMMARY:`));
+                        console.log(chalk.magenta(`Total tokens used: ${this.totalTokens}`));
+                    }
                     console.log(chalk.green.bold("\n✅ COMPLETED"));
                     console.log(chalk.green("─".repeat(30)));
                     break;
