@@ -178,4 +178,4 @@ const query = `What are the prime factors of ${num}?`
 const agent = new Agent(systemPrompt, [smallestPrimeFactor, divide, saveFactors, getFactors], "cs");
 console.log(chalk.underline("Question: ", query));
 await agent.run(query);
-console.log(chalk.blue("The correct answer is: ", primeFactorization(num)))
+console.log(chalk.blue("(Not from the model) The correct answer is: ", primeFactorization(num)))

@@ -25,4 +25,4 @@ console.log(chalk.underline("Question: ", query));
 console.log(response.choices[0].message.content);
 console.log(chalk.magenta.bold(`\n🔢 FINAL TOKEN SUMMARY:`));
 console.log(chalk.magenta(`Total tokens used: ${response.usage.total_tokens}`));
-console.log(chalk.blue("The correct answer is: ", primeFactorization(num)))
+console.log(chalk.blue("(Not from the model) The correct answer is: ", primeFactorization(num)))
