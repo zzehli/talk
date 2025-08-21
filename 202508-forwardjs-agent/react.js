@@ -115,7 +115,7 @@ export class Agent {
 
             // Track tokens from this API call
             let currentTokens = 0;
-            if (this.provider === "cs" && result.usage?.total_tokens) {
+            if (result.usage?.total_tokens) {
                 currentTokens = result.usage.total_tokens;
                 this.totalTokens += currentTokens;
             }
@@ -162,7 +162,7 @@ export class Agent {
                     "content": toolResultsStr,
                 })
             } else {
-                if (this.provider === "cs") {
+                if (this.totalTokens > 0) {
                     console.log(chalk.magenta.bold(`\n🔢 FINAL TOKEN SUMMARY:`));
                     console.log(chalk.magenta(`Total tokens used: ${this.totalTokens}`));
                 }

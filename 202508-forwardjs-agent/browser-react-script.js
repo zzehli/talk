@@ -597,18 +597,18 @@ closeBrowser.anthropicSchema = {
 
 async function example() {
     await initBrowser();
-    console.log(await navigateTo("https://www.instacart.com"));
+    console.log(await navigateTo("https://www.nmichaels.org/musings/d4d4/d4d4/"));
     console.log(await ariaSnapshot());
     // console.log(await click({ ref: "e6", description: "button" }));
     // console.log(await ariaSnapshot());
-    console.log(await typeText({ text: "Hello", ref: "e16", description: "searchbox", submit: true }));
+    // console.log(await typeText({ text: "Hello", ref: "e16", description: "searchbox", submit: true }));
     // console.log(await extractPageContent());
     // console.log(await userInput("What is the current page?"));
     // await closeBrowser();
 }
 // example();
 
-const hn = "go to hackernews (https://news.ycombinator.com/) read the no.1 trending article and give me a summary of it"
+const hn = "go to hackernews (https://news.ycombinator.com/) read the no.1 trending article of this month and give me a summary of it"
 const wiki = "go to wikipedia and search for the current prime minister of canada"
 const gh = "find some open issues on the top trending repo on github this month"
 const eg = "go to https://example.com and click a link"
@@ -616,7 +616,7 @@ const ic = "look for vegan salad on instacart and add it to the cart"
 
 await initBrowser();
 const systemPrompt = `You are a helpful agent that can think and use tools. Use the tools to solve the problem step by step.
-When you use tools, always provide a message to explain your plan along with the tool call. When you trying to find information or need a general overview of the page, use findInPage tool or extractPageContent tool. For interaction, use ariaSnapshot to get the element reference and then use click or typeText tool. When in doubt, solicit user input with userInput tool.`
-const agent = new Agent(systemPrompt, [navigateTo, ariaSnapshot, findInPage, userInput, typeText, extractPageContent, click], "cd");
+When you use tools, always provide a message to explain your plan along with the tool call. When you trying to find information use findInPage tool. For interaction, use ariaSnapshot to get the content of the whole page, element reference and then use click or typeText tool. When in doubt, solicit user input with userInput tool.`
+const agent = new Agent(systemPrompt, [navigateTo, ariaSnapshot, findInPage, userInput, typeText, click], "cd");
 await agent.run(hn);
 await closeBrowser();
