@@ -6,7 +6,7 @@
 		"browser-react": "node --env-file=.env 202508-forwardjs-agent/browser-react-script.js",
 		"pf-react": "node --env-file=.env 202508-forwardjs-agent/prime-factor-react-script.js",
 		"pf-codeact": "node --env-file=.env 202508-forwardjs-agent/prime-factor-codeact-script.js",
-		"pf-chat": "node --env-file=.env 202508-forwardjs-agent/prime-factor-chat.js"
+		"pf-chat": "node --env-file=.env 202508-forwardjs-agent/prime-factor-chat-script.js"
 	},
 	"dependencies": {
 		"@anthropic-ai/sdk": "^0.57.0",

@@ -7,7 +7,7 @@ const client = new Cerebras({
 });
 
 const num = 11133345
-const query = `What are the prime factors of ${num}? Please show your work step by step.`
+const query = `What are the prime factors of ${num}?`
 const messages = [
     {
         "role": "user",
